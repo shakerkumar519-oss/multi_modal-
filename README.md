@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🤖 Multimodal AI Platform
 
 A full-stack Multimodal Artificial Intelligence application built with **React 19**, **FastAPI**, **ChromaDB**, **Groq LLM**, and **PyMuPDF**.
@@ -101,3 +102,7 @@ npm run dev
 
 ## 📜 License
 MIT License. Free to use and modify.
+=======
+# multi_modal-
+A multimodal ai has can perform chat ,image,voice ,pdf extraction and many ore other things 
+>>>>>>> 7be9c5cad2efb1991dd693a0f82a031327311529
