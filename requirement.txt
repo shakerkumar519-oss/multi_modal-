@@ -5,14 +5,11 @@ python-dotenv
 pillow
 pymupdf
 sqlalchemy
-passlib[bcrypt]
-bcrypt
 python-jose[cryptography]
 authlib
 itsdangerous
 numpy
 pydantic
-email-validator
 python-multipart
 requests
 httpx
