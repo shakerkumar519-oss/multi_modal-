@@ -39,4 +39,12 @@ def get_db():
         db.close()
 
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    try:
+        from auth.models import Base
+        Base.metadata.create_all(bind=engine)
+        print("Database tables verified successfully.")
+    except Exception as e:
+        print(f"Warning creating tables: {e}")
+
+# Automatically ensure tables exist on module import
+create_tables()
