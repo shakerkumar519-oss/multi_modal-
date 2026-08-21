@@ -2,8 +2,16 @@ import os
 import sys
 import shutil
 import tempfile
+import json
 import uuid
-from pathlib import Path
+
+# Global JSON encoder patch for UUID serialization across entire FastAPI app
+_orig_json_default = json.JSONEncoder.default
+def _uuid_json_default(self, obj):
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    return _orig_json_default(self, obj)
+json.JSONEncoder.default = _uuid_json_default
 
 # Add the backend directory to the sys.path so we can import from database and auth
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
