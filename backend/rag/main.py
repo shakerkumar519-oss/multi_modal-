@@ -64,11 +64,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+is_prod = os.getenv("APP_ENV", "development").lower() == "production" or os.getenv("RENDER") is not None
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production"),
-    same_site="lax",
-    https_only=False
+    same_site="none" if is_prod else "lax",
+    https_only=True if is_prod else False
 )
 
 UPLOAD_DIR = Path("uploads")
