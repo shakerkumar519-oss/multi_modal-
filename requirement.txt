@@ -10,7 +10,6 @@ bcrypt
 python-jose[cryptography]
 authlib
 itsdangerous
-sentence-transformers
 numpy
 pydantic
 requests
