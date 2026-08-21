@@ -12,5 +12,6 @@ authlib
 itsdangerous
 numpy
 pydantic
+email-validator
 requests
 httpx
