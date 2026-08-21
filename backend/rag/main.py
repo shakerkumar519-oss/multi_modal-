@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import json
 import uuid
+from pathlib import Path
 
 # Global JSON encoder patch for UUID serialization across entire FastAPI app
 _orig_json_default = json.JSONEncoder.default
