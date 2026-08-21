@@ -18,10 +18,10 @@ json.JSONEncoder.default = _uuid_json_default
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from groq import Groq
 from sqlalchemy.orm import Session
@@ -50,6 +50,15 @@ from auth.router import router as auth_router
 client = Groq(api_key=GROQ_APIKEY)
 
 app = FastAPI(title="Multimodal AI Backend")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Server Error: {type(exc).__name__} - {str(exc)}"}
+    )
 
 # Include auth router
 app.include_router(auth_router)
