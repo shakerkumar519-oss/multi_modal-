@@ -52,6 +52,7 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     
     hashed_pwd = hash_password(user_data.password)
     new_user = User(
+        id=str(uuid.uuid4()),
         email=user_data.email,
         name=user_data.name,
         password_hash=hashed_pwd,
