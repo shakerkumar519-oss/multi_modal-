@@ -12,8 +12,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 USE_SQLITE_FALLBACK = os.getenv("USE_SQLITE_FALLBACK", "true").lower() == "true"
 
 def _get_sqlite_url():
-    default_dir = tempfile.gettempdir()
-    db_path = os.getenv("SQLITE_DB_PATH", os.path.join(default_dir, "multimodal_ai_v3.db"))
+    if os.name == 'nt':
+        db_path = os.path.join(tempfile.gettempdir(), "multimodal_ai_v3.db")
+    else:
+        db_path = "/tmp/multimodal_ai_v3.db"
     return f"sqlite:///{db_path}"
 
 if USE_SQLITE_FALLBACK or not DATABASE_URL or not DATABASE_URL.startswith("postgresql"):
