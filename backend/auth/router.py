@@ -84,8 +84,8 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         import traceback
         traceback.print_exc()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Signup failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Signup error: {type(e).__name__} - {str(e)}"
         )
 
 @router.post("/token", response_model=Token)
