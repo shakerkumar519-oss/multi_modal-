@@ -43,6 +43,10 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+@router.post("/quick-signup")
+def quick_signup(data: dict):
+    return {"status": "ok", "received": data}
+
 @router.post("/signup")
 def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
