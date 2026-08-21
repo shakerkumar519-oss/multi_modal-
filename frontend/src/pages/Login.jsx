@@ -20,6 +20,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || "https://multi-modal-ai-backend.onrender.com";
 
   useEffect(() => {
     setIsMounted(true);
@@ -32,36 +33,38 @@ const Login = () => {
       return;
     }
 
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
+
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({ username: email, password }),
+        body: formData.toString(),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Login failed");
+        throw new Error(data.detail || "Login failed. Please check your credentials.");
       }
 
-      // Store token in localStorage and redirect to main Multimodal AI app
       localStorage.setItem("access_token", data.access_token);
-      window.location.href = "/";
+      window.location.href = '/';
     } catch (err) {
-      setError(err.message || "Login failed");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    // Redirect to Google OAuth
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google/login`;
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_URL}/auth/google/login`;
   };
 
   const styles = {

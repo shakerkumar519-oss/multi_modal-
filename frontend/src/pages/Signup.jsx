@@ -27,7 +27,7 @@ export default function Signup() {
   const [strength, setStrength] = useState(0);
   
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || "https://multi-modal-ai-backend.onrender.com";
 
   // Calculate password strength
   useEffect(() => {

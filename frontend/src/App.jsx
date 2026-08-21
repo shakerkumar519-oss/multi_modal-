@@ -8,7 +8,7 @@ import "./index.css";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "https://multi-modal-ai-backend.onrender.com";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
