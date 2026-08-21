@@ -139,7 +139,12 @@ async def google_login(request: Request):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Google Client Secret in .env is invalid. Client Secret must be your secret key (e.g. GOCSPX-...), not another *.googleusercontent.com string."
         )
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:8000")
+        scheme = "https" if "onrender.com" in host or request.headers.get("x-forwarded-proto") == "https" else "http"
+        redirect_uri = f"{scheme}://{host}/auth/google/callback"
+
     try:
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
@@ -150,7 +155,11 @@ async def google_login(request: Request):
 
 @router.get('/google/callback')
 async def google_callback(request: Request, db: Session = Depends(get_db)):
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    frontend_url = os.getenv("FRONTEND_URL")
+    if not frontend_url:
+        cors_origin = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173").split(",")[0].strip()
+        frontend_url = cors_origin if cors_origin != "*" else "http://localhost:5173"
+
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
