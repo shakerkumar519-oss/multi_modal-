@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk ls *)",
+      "Bash(rtk tree *)",
+      "Bash(python -m pip list)",
+      "Bash(findstr \"groq\\\\|fastapi\\\\|uvicorn\\\\|sentence-transformers\\\\|chromadb\\\\|pymupdf\\\\|huggingface-hub\\\\|pyttsx3\\\\|python-dotenv\\\\|pillow\")",
+      "Bash(rtk pip *)",
+      "Bash(python -m uvicorn rag.main:app --reload --host 0.0.0.0 --port 8000)",
+      "Bash(npm start *)",
+      "Bash(rtk grep *)",
+      "Bash(taskkill *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8000)",
+      "Bash(timeout 5 bash -c \"while ! nc -z localhost 8000; do sleep 1; done; echo 'Server is ready'\")",
+      "Bash(rtk curl *)",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri http://localhost:8000/health -UseBasicParsing\")",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(timeout 30 bash -c \"while ! npm list vite 2>/dev/null; do sleep 2; done; echo 'Vite installed'\")",
+      "Bash(powershell -Command \"Start-Process powershell -ArgumentList '-NoExit', '-Command', \\\\\"Invoke-WebRequest -Uri http://localhost:8000/health -UseBasicParsing; Start-Sleep -Seconds 5\\\\\"\")",
+      "Bash(npm run *)",
+      "Bash(timeout 10 bash -c \"while ! nc -z localhost 5173; do sleep 1; done; echo 'Frontend ready'\")",
+      "Bash(powershell -Command \"try { Invoke-WebRequest -Uri http://localhost:5173 -UseBasicParsing -ErrorAction Stop; Write-Host 'Frontend is up' } catch { Write-Host 'Frontend not ready yet' }\")",
+      "Bash(timeout 5 bash -c \"while ! curl -s http://localhost:5173 > /dev/null 2>&1; do sleep 1; done; echo 'Frontend is ready'\")",
+      "Bash(tasklist)",
+      "Bash(findstr python *)",
+      "Bash(rtk find *)"
+    ]
+  }
+}
