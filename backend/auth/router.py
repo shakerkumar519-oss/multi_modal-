@@ -164,7 +164,13 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
         if not user_info:
-            user_info = await oauth.google.parse_id_token(request, token)
+            import httpx
+            async with httpx.AsyncClient() as client:
+                res = await client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {token['access_token']}"}
+                )
+                user_info = res.json()
 
         email = user_info['email']
         name = user_info.get('name', email.split('@')[0])
