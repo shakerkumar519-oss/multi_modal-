@@ -24,7 +24,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # Schemas
 class UserCreate(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
 
 class UserResponse(BaseModel):
