@@ -25,9 +25,18 @@ class User(Base):
 
     def verify_password(self, password: str) -> bool:
         """Verify a password against the stored hash."""
-        if not self.password_hash:
+        pwd = self.password_hash or getattr(self, 'hashed_password', None)
+        if not pwd:
             return False
-        return pwd_context.verify(password, self.password_hash)
+        return pwd_context.verify(password, pwd)
+
+    @property
+    def hashed_password(self):
+        return self.password_hash
+
+    @hashed_password.setter
+    def hashed_password(self, value):
+        self.password_hash = value
 
     def set_password(self, password: str):
         """Hash and set the password."""
