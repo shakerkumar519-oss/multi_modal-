@@ -9,8 +9,9 @@ from fastapi.security import OAuth2PasswordBearer
 from .models import User
 from database import get_db
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import hashlib
+import hmac
+import secrets
 
 # JWT settings
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-jwt-key-2026-multimodal-ai")
@@ -20,17 +21,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 # OAuth2 scheme for token extraction
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-import hashlib
-import hmac
-import secrets
-
 def hash_password(password: str) -> str:
-    try:
-        return pwd_context.hash(password)
-    except Exception:
-        salt = secrets.token_hex(16)
-        pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000).hex()
-        return f"pbkdf2_sha256${salt}${pwd_hash}"
+    salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000).hex()
+    return f"pbkdf2_sha256${salt}${pwd_hash}"
 
 def get_password_hash(password: str) -> str:
     return hash_password(password)
@@ -44,10 +38,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
             salt, stored_hash = parts[1], parts[2]
             computed_hash = hashlib.pbkdf2_hmac('sha256', plain_password.encode('utf-8'), salt.encode('utf-8'), 100000).hex()
             return hmac.compare_digest(computed_hash, stored_hash)
-    try:
-        return pwd_context.verify(plain_password, hashed_password)
-    except Exception:
-        return False
+    return False
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = {}
