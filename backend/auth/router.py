@@ -43,40 +43,50 @@ class Token(BaseModel):
 
 @router.post("/signup")
 def signup(user_data: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user_data.email).first()
-    if db_user:
+    try:
+        db_user = db.query(User).filter(User.email == user_data.email).first()
+        if db_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        hashed_pwd = hash_password(user_data.password)
+        user_id = str(uuid.uuid4())
+        new_user = User(
+            id=user_id,
+            email=user_data.email,
+            name=user_data.name,
+            password_hash=hashed_pwd,
+            auth_provider="email"
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": new_user.email, "id": str(new_user.id)},
+            expires_delta=access_token_expires
+        )
+
+        return {
+            "id": str(new_user.id),
+            "name": new_user.name,
+            "email": new_user.email,
+            "auth_provider": new_user.auth_provider,
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            detail=f"Signup failed: {str(e)}"
         )
-    
-    hashed_pwd = hash_password(user_data.password)
-    user_id = str(uuid.uuid4())
-    new_user = User(
-        id=user_id,
-        email=user_data.email,
-        name=user_data.name,
-        password_hash=hashed_pwd,
-        auth_provider="email"
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": new_user.email, "id": str(new_user.id)},
-        expires_delta=access_token_expires
-    )
-
-    return {
-        "id": str(new_user.id),
-        "name": new_user.name,
-        "email": new_user.email,
-        "auth_provider": new_user.auth_provider,
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
 
 @router.post("/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
