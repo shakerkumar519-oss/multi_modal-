@@ -13,5 +13,6 @@ itsdangerous
 numpy
 pydantic
 email-validator
+python-multipart
 requests
 httpx
