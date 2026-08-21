@@ -185,7 +185,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             db.refresh(user)
 
         jwt_token = create_access_token(
-            data={"sub": user.email, "id": user.id}
+            data={"sub": user.email, "id": str(user.id)}
         )
 
         redirect_to = f"{frontend_url.rstrip('/')}/?token={jwt_token}"

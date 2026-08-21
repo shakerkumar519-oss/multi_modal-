@@ -31,6 +31,8 @@ def hash_password(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
+    if "id" in to_encode and to_encode["id"] is not None:
+        to_encode["id"] = str(to_encode["id"])
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
