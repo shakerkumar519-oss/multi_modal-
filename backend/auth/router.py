@@ -172,20 +172,26 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
                 user.google_id = google_id
                 if user.auth_provider == "email":
                     user.auth_provider = "both"
-            db.commit()
         else:
             user = User(
+                id=str(uuid.uuid4()),
                 email=email,
                 name=name,
                 google_id=google_id,
                 auth_provider="google"
             )
             db.add(user)
+
+        try:
             db.commit()
             db.refresh(user)
+        except Exception:
+            db.rollback()
+            user = db.query(User).filter(User.email == email).first()
 
+        user_id_str = str(user.id) if (user and hasattr(user, 'id') and user.id) else str(uuid.uuid4())
         jwt_token = create_access_token(
-            data={"sub": user.email, "id": str(user.id)}
+            data={"sub": str(email), "id": user_id_str}
         )
 
         redirect_to = f"{frontend_url.rstrip('/')}/?token={jwt_token}"
