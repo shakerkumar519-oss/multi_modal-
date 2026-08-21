@@ -1,4 +1,17 @@
+fastapi
+uvicorn[standard]
 groq
 python-dotenv
 pillow
 pymupdf
+sqlalchemy
+passlib[bcrypt]
+bcrypt
+python-jose[cryptography]
+authlib
+itsdangerous
+sentence-transformers
+numpy
+pydantic
+requests
+httpx
