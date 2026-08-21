@@ -1,4 +1,5 @@
 import os
+import tempfile
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -7,12 +8,16 @@ from sqlalchemy.orm import sessionmaker
 # Load environment variables
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./multimodal_ai_v3.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 USE_SQLITE_FALLBACK = os.getenv("USE_SQLITE_FALLBACK", "true").lower() == "true"
 
+def _get_sqlite_url():
+    default_dir = tempfile.gettempdir()
+    db_path = os.getenv("SQLITE_DB_PATH", os.path.join(default_dir, "multimodal_ai_v3.db"))
+    return f"sqlite:///{db_path}"
+
 if USE_SQLITE_FALLBACK or not DATABASE_URL or not DATABASE_URL.startswith("postgresql"):
-    SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "./multimodal_ai_v3.db")
-    SQLITE_DATABASE_URL = f"sqlite:///{SQLITE_DB_PATH}"
+    SQLITE_DATABASE_URL = _get_sqlite_url()
     engine = create_engine(SQLITE_DATABASE_URL, connect_args={"check_same_thread": False})
     print(f"Using SQLite database: {SQLITE_DATABASE_URL}")
 else:
@@ -23,8 +28,7 @@ else:
         print(f"Using PostgreSQL database: {DATABASE_URL}")
     except Exception as e:
         print(f"Warning: PostgreSQL connection failed ({e}). Falling back to SQLite.")
-        SQLITE_DB_PATH = "./multimodal_ai_v3.db"
-        SQLITE_DATABASE_URL = f"sqlite:///{SQLITE_DB_PATH}"
+        SQLITE_DATABASE_URL = _get_sqlite_url()
         engine = create_engine(SQLITE_DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
