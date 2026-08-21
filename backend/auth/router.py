@@ -1,12 +1,13 @@
 import os
+import secrets
 from typing import Any, Optional
 from datetime import timedelta
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
-from authlib.integrations.starlette_client import OAuth
 
 from database import get_db
 from auth.models import User
@@ -19,16 +20,6 @@ from auth.utils import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-# OAuth Configuration
-oauth = OAuth()
-oauth.register(
-    name='google',
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'},
-)
 
 # Schemas
 class UserCreate(BaseModel):
@@ -101,6 +92,7 @@ async def google_login(request: Request):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Google Client Secret in .env is invalid. Client Secret must be your secret key (e.g. GOCSPX-...), not another *.googleusercontent.com string."
         )
+    
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
     if not redirect_uri:
         host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:8000")
@@ -108,13 +100,17 @@ async def google_login(request: Request):
         redirect_uri = f"{scheme}://{host}/auth/google/callback"
     redirect_uri = redirect_uri.strip()
 
-    try:
-        return await oauth.google.authorize_redirect(request, redirect_uri)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to initiate Google OAuth: {str(e)}"
-        )
+    state = secrets.token_urlsafe(16)
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        f"response_type=code&"
+        f"client_id={quote(client_id)}&"
+        f"redirect_uri={quote(redirect_uri)}&"
+        f"scope=openid%20email%20profile&"
+        f"state={state}&"
+        f"prompt=select_account"
+    )
+    return RedirectResponse(url=google_auth_url)
 
 @router.get('/google/callback')
 async def google_callback(request: Request, db: Session = Depends(get_db)):
