@@ -63,19 +63,18 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         )
         db.add(new_user)
         db.commit()
-        db.refresh(new_user)
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={"sub": new_user.email, "id": str(new_user.id)},
+            data={"sub": user_data.email, "id": user_id},
             expires_delta=access_token_expires
         )
 
         return {
-            "id": str(new_user.id),
-            "name": new_user.name,
-            "email": new_user.email,
-            "auth_provider": new_user.auth_provider,
+            "id": user_id,
+            "name": user_data.name,
+            "email": user_data.email,
+            "auth_provider": "email",
             "access_token": access_token,
             "token_type": "bearer"
         }
