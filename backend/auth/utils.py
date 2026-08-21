@@ -30,9 +30,13 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if "id" in to_encode and to_encode["id"] is not None:
-        to_encode["id"] = str(to_encode["id"])
+    to_encode = {}
+    for k, v in data.items():
+        if isinstance(v, (str, int, float, bool, type(None))):
+            to_encode[k] = v
+        else:
+            to_encode[k] = str(v)
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
