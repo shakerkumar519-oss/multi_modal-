@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from groq import Groq
@@ -63,16 +64,6 @@ origins = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173,http://127.0.
 # Split by comma and strip spaces
 allowed_origins = [origin.strip() for origin in origins.split(",")]
 
-from starlette.middleware.sessions import SessionMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=".*",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 is_prod = os.getenv("APP_ENV", "development").lower() == "production" or os.getenv("RENDER") is not None
 
 app.add_middleware(
@@ -80,6 +71,14 @@ app.add_middleware(
     secret_key=os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production"),
     same_site="none" if is_prod else "lax",
     https_only=True if is_prod else False
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=".*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 UPLOAD_DIR = Path("uploads")
