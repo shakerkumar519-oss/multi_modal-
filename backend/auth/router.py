@@ -144,6 +144,7 @@ async def google_login(request: Request):
         host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost:8000")
         scheme = "https" if "onrender.com" in host or request.headers.get("x-forwarded-proto") == "https" else "http"
         redirect_uri = f"{scheme}://{host}/auth/google/callback"
+    redirect_uri = redirect_uri.strip()
 
     try:
         return await oauth.google.authorize_redirect(request, redirect_uri)
