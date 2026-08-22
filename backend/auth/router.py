@@ -50,13 +50,18 @@ def quick_signup(data: dict):
 MEMORY_USERS = {}
 
 @router.post("/signup")
-def signup(user_data: UserCreate, db: Session = Depends(get_db)):
+def signup(user_data: UserCreate):
     try:
         db_user = None
         try:
-            db_user = db.query(User).filter(User.email == user_data.email).first()
-        except Exception:
-            pass
+            from database import SessionLocal
+            db = SessionLocal()
+            try:
+                db_user = db.query(User).filter(User.email == user_data.email).first()
+            finally:
+                db.close()
+        except Exception as db_e:
+            sys.stderr.write(f"[DB READ WARN] {db_e}\n")
 
         if db_user or user_data.email in MEMORY_USERS:
             raise HTTPException(
@@ -68,15 +73,20 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         user_id = str(uuid.uuid4())
         
         try:
-            new_user = User(
-                id=user_id,
-                email=user_data.email,
-                name=user_data.name,
-                password_hash=hashed_pwd,
-                auth_provider="email"
-            )
-            db.add(new_user)
-            db.commit()
+            from database import SessionLocal
+            db = SessionLocal()
+            try:
+                new_user = User(
+                    id=user_id,
+                    email=user_data.email,
+                    name=user_data.name,
+                    password_hash=hashed_pwd,
+                    auth_provider="email"
+                )
+                db.add(new_user)
+                db.commit()
+            finally:
+                db.close()
         except Exception as e:
             sys.stderr.write(f"[DB WRITE WARN] {e}. Using memory store.\n")
 
@@ -112,10 +122,15 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
 @router.post("/token", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = None
     try:
-        user = db.query(User).filter(User.email == form_data.username).first()
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.email == form_data.username).first()
+        finally:
+            db.close()
     except Exception:
         pass
     
