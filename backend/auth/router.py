@@ -203,7 +203,7 @@ async def google_login(request: Request):
     return RedirectResponse(url=google_auth_url)
 
 @router.get('/google/callback')
-async def google_callback(request: Request, db: Session = Depends(get_db)):
+async def google_callback(request: Request):
     frontend_url = os.getenv("FRONTEND_URL")
     if not frontend_url:
         cors_origin = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173").split(",")[0].strip()
@@ -225,7 +225,6 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
         import httpx
         async with httpx.AsyncClient() as client:
-            # Direct REST code exchange with Google API
             token_resp = await client.post(
                 "https://oauth2.googleapis.com/token",
                 data={
@@ -242,47 +241,64 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
                 error_msg = token_data.get("error_description", token_data.get("error", "Failed to obtain access token"))
                 raise HTTPException(status_code=400, detail=f"Google authentication failed: {error_msg}")
 
-            # Direct REST userinfo fetch
             user_info_resp = await client.get(
                 "https://www.googleapis.com/oauth2/v3/userinfo",
                 headers={"Authorization": f"Bearer {access_token}"}
             )
             user_info = user_info_resp.json()
 
-        email = user_info['email']
-        name = user_info.get('name', email.split('@')[0])
-        google_id = user_info['sub']
-
-        user = db.query(User).filter(
-            (User.email == email) | (User.google_id == google_id)
-        ).first()
-
-        if user:
-            if not user.google_id:
-                user.google_id = google_id
-                if user.auth_provider == "email":
-                    user.auth_provider = "both"
-        else:
-            user = User(
-                id=str(uuid.uuid4()),
-                email=email,
-                name=name,
-                google_id=google_id,
-                auth_provider="google"
-            )
-            db.add(user)
+        email = str(user_info['email'])
+        name = str(user_info.get('name', email.split('@')[0]))
+        google_id = str(user_info['sub'])
+        user_id_str = str(uuid.uuid4())
 
         try:
-            db.commit()
-            db.refresh(user)
-        except Exception:
-            db.rollback()
-            user = db.query(User).filter(User.email == email).first()
+            from database import SessionLocal
+            db_session = SessionLocal()
+            try:
+                user = db_session.query(User).filter(
+                    (User.email == email) | (User.google_id == google_id)
+                ).first()
 
-        user_id_str = str(user.id) if (user and hasattr(user, 'id') and user.id) else str(uuid.uuid4())
+                if user:
+                    if not user.google_id:
+                        user.google_id = google_id
+                        if user.auth_provider == "email":
+                            user.auth_provider = "both"
+                    user_id_str = str(user.id)
+                else:
+                    new_user = User(
+                        id=user_id_str,
+                        email=email,
+                        name=name,
+                        google_id=google_id,
+                        auth_provider="google"
+                    )
+                    db_session.add(new_user)
+                db_session.commit()
+            finally:
+                db_session.close()
+        except Exception as db_err:
+            sys.stderr.write(f"[GOOGLE DB WARN] {db_err}\n")
+
+        MEMORY_USERS[email] = {
+            "id": user_id_str,
+            "name": name,
+            "email": email,
+            "password_hash": "",
+            "auth_provider": "google"
+        }
+
         jwt_token = create_access_token(
-            data={"sub": str(email), "id": user_id_str}
+            data={"sub": str(email), "id": str(user_id_str)}
         )
+
+        # Clear session to prevent SessionMiddleware UUID serialization crashes
+        if hasattr(request, "session"):
+            try:
+                request.session.clear()
+            except Exception:
+                pass
 
         redirect_to = f"{frontend_url.rstrip('/')}/?token={jwt_token}"
         return RedirectResponse(url=redirect_to)
@@ -290,8 +306,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        sys.stderr.write(f"[GOOGLE AUTH ERROR] {type(e).__name__}: {str(e)}\n")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Google authentication failed: {str(e)}"
