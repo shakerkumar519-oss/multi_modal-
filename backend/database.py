@@ -46,7 +46,7 @@ def get_db():
 
 def create_tables():
     try:
-        from auth.models import Base
+        import auth.models
         Base.metadata.create_all(bind=engine)
         print("Database tables verified successfully.")
     except Exception as e:

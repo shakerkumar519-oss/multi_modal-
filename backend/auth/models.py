@@ -1,11 +1,7 @@
 from sqlalchemy import Column, String, DateTime, Boolean, Text, ForeignKey, Integer
 from sqlalchemy.sql import func
 import uuid
-from passlib.context import CryptContext
 from database import Base
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def generate_uuid_str():
     return str(uuid.uuid4())
@@ -28,7 +24,8 @@ class User(Base):
         pwd = self.password_hash or getattr(self, 'hashed_password', None)
         if not pwd:
             return False
-        return pwd_context.verify(password, pwd)
+        from auth.utils import verify_password as utils_verify
+        return utils_verify(password, pwd)
 
     @property
     def hashed_password(self):
