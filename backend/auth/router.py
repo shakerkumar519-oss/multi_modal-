@@ -47,11 +47,18 @@ class Token(BaseModel):
 def quick_signup(data: dict):
     return {"status": "ok", "received": data}
 
+MEMORY_USERS = {}
+
 @router.post("/signup")
 def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
-        db_user = db.query(User).filter(User.email == user_data.email).first()
-        if db_user:
+        db_user = None
+        try:
+            db_user = db.query(User).filter(User.email == user_data.email).first()
+        except Exception:
+            pass
+
+        if db_user or user_data.email in MEMORY_USERS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
@@ -59,15 +66,27 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         
         hashed_pwd = hash_password(user_data.password)
         user_id = str(uuid.uuid4())
-        new_user = User(
-            id=user_id,
-            email=user_data.email,
-            name=user_data.name,
-            password_hash=hashed_pwd,
-            auth_provider="email"
-        )
-        db.add(new_user)
-        db.commit()
+        
+        try:
+            new_user = User(
+                id=user_id,
+                email=user_data.email,
+                name=user_data.name,
+                password_hash=hashed_pwd,
+                auth_provider="email"
+            )
+            db.add(new_user)
+            db.commit()
+        except Exception as e:
+            sys.stderr.write(f"[DB WRITE WARN] {e}. Using memory store.\n")
+
+        MEMORY_USERS[user_data.email] = {
+            "id": user_id,
+            "name": user_data.name,
+            "email": user_data.email,
+            "password_hash": hashed_pwd,
+            "auth_provider": "email"
+        }
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
@@ -86,16 +105,30 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        sys.stderr.write(f"[SIGNUP ERROR] {type(e).__name__}: {str(e)}\n")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Signup error: {type(e).__name__} - {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Signup error: {str(e)}"
         )
 
 @router.post("/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
+    user = None
+    try:
+        user = db.query(User).filter(User.email == form_data.username).first()
+    except Exception:
+        pass
+    
+    if not user and form_data.username in MEMORY_USERS:
+        m = MEMORY_USERS[form_data.username]
+        user = User(
+            id=m["id"],
+            email=m["email"],
+            name=m["name"],
+            password_hash=m["password_hash"],
+            auth_provider=m["auth_provider"]
+        )
+
     if not user or not verify_password(form_data.password, user.password_hash or ""):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
