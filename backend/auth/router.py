@@ -50,26 +50,41 @@ def quick_signup(data: dict):
 MEMORY_USERS = {}
 
 @router.post("/signup")
-def signup(user_data: UserCreate):
+async def signup(request: Request):
     try:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        
+        email = body.get("email", "").strip()
+        password = body.get("password", "").strip()
+        name = body.get("name", "User").strip()
+
+        if not email or not password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email and password are required"
+            )
+
         db_user = None
         try:
             from database import SessionLocal
             db = SessionLocal()
             try:
-                db_user = db.query(User).filter(User.email == user_data.email).first()
+                db_user = db.query(User).filter(User.email == email).first()
             finally:
                 db.close()
         except Exception as db_e:
             sys.stderr.write(f"[DB READ WARN] {db_e}\n")
 
-        if db_user or user_data.email in MEMORY_USERS:
+        if db_user or email in MEMORY_USERS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
         
-        hashed_pwd = hash_password(user_data.password)
+        hashed_pwd = hash_password(password)
         user_id = str(uuid.uuid4())
         
         try:
@@ -78,8 +93,8 @@ def signup(user_data: UserCreate):
             try:
                 new_user = User(
                     id=user_id,
-                    email=user_data.email,
-                    name=user_data.name,
+                    email=email,
+                    name=name,
                     password_hash=hashed_pwd,
                     auth_provider="email"
                 )
@@ -90,24 +105,24 @@ def signup(user_data: UserCreate):
         except Exception as e:
             sys.stderr.write(f"[DB WRITE WARN] {e}. Using memory store.\n")
 
-        MEMORY_USERS[user_data.email] = {
+        MEMORY_USERS[email] = {
             "id": user_id,
-            "name": user_data.name,
-            "email": user_data.email,
+            "name": name,
+            "email": email,
             "password_hash": hashed_pwd,
             "auth_provider": "email"
         }
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={"sub": user_data.email, "id": user_id},
+            data={"sub": email, "id": user_id},
             expires_delta=access_token_expires
         )
 
         return {
             "id": user_id,
-            "name": user_data.name,
-            "email": user_data.email,
+            "name": name,
+            "email": email,
             "auth_provider": "email",
             "access_token": access_token,
             "token_type": "bearer"
